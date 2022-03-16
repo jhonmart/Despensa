@@ -1,17 +1,79 @@
 <template>
   <section>
-
-    <aside class="is-hidden-desktop">
-      <b-input
-        v-model="searchName"
-        placeholder="Pesquisar..."
-        icon="magnify"
-        size="is-small"
-      />
-    </aside>
+    <b-table class="form">
+      <template #footer>
+        <th class="is-hidden-desktop">
+          <b-field label="Filtro"
+            type="is-success"
+            message="Filtrar itens por aqui">
+            <b-input
+              type="is-success"
+              v-model="searchName"
+              placeholder="Pesquisar..."
+              icon="magnify"
+            />
+          </b-field>
+        </th>
+        <th>
+          <b-input
+            type="text"
+            placeholder="Código"
+            v-model="newItem.code"
+            :loading="newItem.codeReading"
+            icon="magnify"
+            icon-clickable
+            @icon-click="searchManualCode(newItem)"
+            icon-right="barcode-scan"
+            icon-right-clickable
+            @icon-right-click="readImg('new')"
+          />
+          <input
+            type="file"
+            accept="image/*;capture=camera"
+            class="is-hidden"
+            @change="(event) => checkImg(event, newItem)"
+            ref="inputImage_new"
+          />
+        </th>
+        <th>
+        <b-input
+          type="text"
+            placeholder="Nome"
+          v-model="newItem.name"
+        />
+        </th>
+        <th>
+        <b-input
+          type="text"
+          placeholder="Quantidade"
+          v-model="newItem.size"
+        />
+        </th>
+        <th>
+        <b-input
+          type="date"
+            placeholder="Data"
+          v-model="newItem.date"
+        />
+        </th>
+        <th>
+        <b-input
+          type="number"
+            placeholder="Quantidade"
+          v-model="newItem.count"
+        />
+        </th>
+        <th class="is-flex">
+          <b-button type="is-primary" class="flex-1" @click="create()">
+            <b-icon icon="plus" />
+            <span class="is-hidden-desktop">Adicionar</span>
+          </b-button>
+        </th>
+      </template>
+    </b-table>
     <b-table
       checkable
-      :data="data"
+      :data="getListItens(searchName)"
       :checked-rows.sync="listItensSelected"
       :debounce-search="500"
     >
@@ -35,7 +97,7 @@
               :loading="props.row.codeReading"
               icon="magnify"
               icon-clickable
-              @icon-click="searchCode(props.index)"
+              @icon-click="searchManualCode(props.row)"
               icon-right="barcode-scan"
               icon-right-clickable
               @icon-right-click="readImg(props.index)"
@@ -44,7 +106,7 @@
               type="file"
               accept="image/*;capture=camera"
               class="is-hidden"
-              @change="(event) => checkImg(event, props.index)"
+              @change="(event) => checkImg(event, props.row)"
               :ref="`inputImage_${props.index}`"
             />
           </template>
@@ -58,8 +120,11 @@
       </template>
       <b-table-column label="Actions" v-slot="props">
         <section>
-          <b-button type="is-primary" @click="create(props.index)">
-            <b-icon icon="plus" />
+          <b-button type="is-orange" @click="editItem(props.row)">
+            <b-icon icon="pen" />
+          </b-button>
+          <b-button type="is-danger" class="ml-2" @click="removeItemById(props.row.id)">
+            <b-icon icon="delete" />
           </b-button>
         </section>
       </b-table-column>
@@ -68,24 +133,24 @@
 </template>
 
 <script>
-import Quagga from "quagga";
+import { mapActions, mapGetters, mapMutations } from "vuex";
+import { readBarCode } from "@/utils/readCode";
+
 export default {
   name: "ListSearch",
   data() {
     return {
       searchName: "",
       listItensSelected: [],
-      data: [
-        {
-          id: 1,
-          code: '',
-          count: 0,
-          name: '',
-          size: '',
-          codeReading: false,
-          date: (new Date).toISOString().split('T')[0],
-        },
-      ],
+      newItem: {
+        id: Math.random().toString(16).slice(2),
+        code: '',
+        count: 0,
+        name: '',
+        size: '',
+        codeReading: false,
+        date: (new Date).toISOString().split('T')[0]
+      },
       columns: [
         {
           field: "code",
@@ -116,21 +181,35 @@ export default {
       ],
     };
   },
+  computed: {
+    ...mapGetters([
+      "getListItens"
+    ])
+  },
   methods: {
-    create(ref) {
-      console.log(ref)
-      this.data.unshift({
-        id:  1,
+    ...mapMutations([
+      "insertNewItem",
+      "removeItemById",
+      "editItem"
+    ]),
+    ...mapActions([
+      "searchCodeInGoogle"
+    ]),
+    create() {
+      this.insertNewItem(this.newItem);
+      this.newItem = {
+        id: Math.random().toString(16).slice(2),
         code: '',
         count: 0,
         name: '',
         size: '',
         codeReading: false,
-        date: (new Date).toISOString().split('T')[0],
-      });
+        date: (new Date).toISOString().split('T')[0]
+      };
     },
     readImg(ref) {
-      this.$refs[`inputImage_${ref}`][0].click();
+      if (ref === "new") this.$refs[`inputImage_new`].click()
+      else this.$refs[`inputImage_${ref}`][0].click();
     },
     async getBase64(file) {
       return new Promise((res, rej) => {
@@ -153,21 +232,20 @@ export default {
       const newName = size ? name.replace(size[0], "") : name;
       return { name: newName.padronize(), size: size[0] };
     },
-    searchCode(ref) {
-      const code = this.data[ref].code;
+    searchManualCode(item) {
+      const code = item.code;
       if (code.length > 12)
-        this.changeItem(ref, { codeResult: { code } });
+        this.changeItem(item, { codeResult: { code } });
     },
-    changeItem(ref, data) {
-      const item = this.data[ref];
+    changeItem(item, data) {
       if (data.codeResult) {
         item.code = data.codeResult.code;
-        this.searchInGoogle(item.code).then(results=> {
+        this.searchCodeInGoogle(item.code).then(results=> {
           const extractValues = this.formartDescrition(results[0].title)
           item.name = extractValues.name;
           item.size = extractValues.size;
-          this.data = [...this.data];
-        })
+          this.editItem(item);
+        });
       } else {
         this.$buefy.snackbar.open({
           message: "Houve uma falha ao tentar ler o código de barras",
@@ -176,28 +254,24 @@ export default {
         });
       }
       item.codeReading = false;
-      this.data = [...this.data];
+      this.editItem(item);
     },
-    async searchInGoogle(query) {
-      return await fetch("https://www.googleapis.com/customsearch/v1?q="+query+""+process.env.KEYS).then(el=>el.json()).then(el=>el.items);
-    },
-    async checkImg(event, ref) {
-      const item = this.data[ref];
+    async checkImg(event, item) {
       item.codeReading = true;
+      this.editItem(item);
       const file = event.target.files[0];
       file.result = await this.getBase64(file);
-      Quagga.decodeSingle(
-        {
-          inputStream: { size: 1280 },
-          locator: { patchSize: "medium", halfSample: true },
-          numOfWorkers: 1,
-          decoder: { readers: [{ format: "ean_reader", config: {} }] },
-          locate: true,
-          src: file.result,
-        },
-        result => this.changeItem(ref, result)
-      );
+      readBarCode(file.result, result => this.changeItem(item, result));
     },
-  },
+  }
 };
 </script>
+
+<style lang="scss" scoped>
+.flex-1 {
+  flex: 1;
+}
+.icon {
+  vertical-align: bottom;
+}
+</style>

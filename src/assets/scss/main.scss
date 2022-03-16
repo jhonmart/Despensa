@@ -1,6 +1,10 @@
+// Import Custom
+@import "./custom.scss";
+
 // Import Bulma's core
 @import "~bulma/sass/utilities/_all";
 
+$colors: join($colors, $new-colors);
 
 // Import Bulma and Buefy styles
 @import "~bulma";
