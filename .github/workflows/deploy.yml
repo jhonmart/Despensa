@@ -1,0 +1,36 @@
+name: Deploy project
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: 🟢 Use Node.js 14.x
+        uses: actions/setup-node@v2
+        with:
+          node-version: 14.x
+
+      - name: 📦 Install dependencies
+        run: yarn install
+
+      - name: 📚 Build project
+        run: yarn build
+        env:
+          VUE_APP_CX: ${{ secrets.VUE_APP_CX }}
+          VUE_APP_KEY: ${{ secrets.VUE_APP_KEY }}
+
+      - name: 🚀 Deploy
+        uses: test-room-7/action-update-file@v1
+        with:
+          branch: demo
+          file-path: docs/**/*
+          commit-msg: deploy system
+          github-token: ${{ secrets.GITHUB_TOKEN }}
