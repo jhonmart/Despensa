@@ -69,9 +69,20 @@
       :debounce-search="500"
     >
       <template v-for="column in columns">
-        <b-table-column :key="column.id" v-bind="column">
+        <b-table-column
+          :key="column.id"
+          v-bind="column"
+          :sortable="column.sortable"
+        >
           <template v-if="column.searchable" #searchable="props">
+            <b-datepicker
+              v-if="column.type === 'batata'"
+              placeholder="Pesquisar..."
+              v-model="props.filters[props.column.field]"
+              range
+            />
             <b-input
+              v-else
               v-model="props.filters[props.column.field]"
               placeholder="Pesquisar..."
               icon="magnify"
@@ -154,28 +165,34 @@ export default {
         {
           field: "code",
           label: "Código",
-          searchable: true
+          searchable: true,
+          sortable: true
         },
         {
           field: "name",
           label: "Nome",
-          searchable: true
+          searchable: true,
+          sortable: true
         },
         {
           field: "size",
           label: "Peso",
-          searchable: true
+          searchable: true,
+          sortable: true
         },
         {
           field: "date",
           label: "Data",
           type: "date",
-          centered: true
+          searchable: true,
+          centered: true,
+          sortable: true
         },
         {
           field: "count",
           label: "Quantidade",
-          type: "number"
+          type: "number",
+          sortable: true
         }
       ]
     };
@@ -330,12 +347,12 @@ export default {
   },
   beforeMount() {
     const hash = this.$router.currentRoute.query.hash;
-    if (hash) {
+    if (hash && hash !== "yes") {
       this.$connect();
       setTimeout(() => {
         this.listItensRequest(hash);
       }, 1e3);
-    } else {
+    } else if (hash) {
       this.$router.push({
         path: `?hash=${((Math.random() + Date.now()) * 1e4).toString(36)}`
       });

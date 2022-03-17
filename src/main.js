@@ -26,7 +26,8 @@ Object.defineProperty(String.prototype, "padronize", {
           ? word.toLowerCase()
           : `${word.charAt(0).toUpperCase()}${word.toLowerCase().slice(1)}`
       )
-      .join(" ");
+      .join(" ")
+      .trim();
   }
 });
 

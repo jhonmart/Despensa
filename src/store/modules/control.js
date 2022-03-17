@@ -52,6 +52,11 @@ const actions = {
 
     commit("editItem", data);
     dispatch("editItensRequest", data);
+    Toast.open({
+      message: "Item editado com sucesso!",
+      duration: 5e3,
+      type: "is-success"
+    });
   },
   removeProduct: ({ commit, dispatch }, data_id) => {
     commit("removeItemById", data_id);
@@ -67,7 +72,7 @@ const actions = {
 const getters = {
   getListItens: state => (filter = "") =>
     state.listItens.filter(item =>
-      RegExp(filter, "i").test(`${item.name} ${item.code}`)
+      RegExp(filter, "i").test(`${item.name} ${item.code} ${item.size}`)
     )
 };
 
