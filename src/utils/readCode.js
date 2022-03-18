@@ -8,7 +8,7 @@ export const readBarCode = (src, result) =>
       numOfWorkers: 1,
       decoder: { readers: [{ format: "ean_reader", config: {} }] },
       locate: true,
-      src,
+      src
     },
     result
   );

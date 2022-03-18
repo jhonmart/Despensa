@@ -1,5 +1,5 @@
-import ListSearch from '@/components/ListSearch/ListSearch';
+import ListSearch from "@/components/ListSearch/ListSearch";
 
 export const Script = {
-  components: { ListSearch },
-}
+  components: { ListSearch }
+};

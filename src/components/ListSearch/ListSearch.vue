@@ -3,9 +3,11 @@
     <b-table class="form">
       <template #footer>
         <th class="is-hidden-desktop">
-          <b-field label="Filtro"
+          <b-field
+            label="Filtro"
             type="is-success"
-            message="Filtrar itens por aqui">
+            message="Filtrar itens por aqui"
+          >
             <b-input
               type="is-success"
               v-model="searchName"
@@ -16,7 +18,7 @@
         </th>
         <th>
           <b-input
-            type="text"
+            type="number"
             placeholder="Código"
             v-model="newItem.code"
             :loading="newItem.codeReading"
@@ -31,37 +33,26 @@
             type="file"
             accept="image/*;capture=camera"
             class="is-hidden"
-            @change="(event) => checkImg(event, newItem)"
+            @change="event => checkImg(event, newItem)"
             ref="inputImage_new"
           />
         </th>
         <th>
-        <b-input
-          type="text"
-            placeholder="Nome"
-          v-model="newItem.name"
-        />
+          <b-input type="text" placeholder="Nome" v-model="newItem.name" />
         </th>
         <th>
-        <b-input
-          type="text"
-          placeholder="Quantidade"
-          v-model="newItem.size"
-        />
+          <b-input type="text" placeholder="Peso" v-model="newItem.size" />
         </th>
         <th>
-        <b-input
-          type="date"
-            placeholder="Data"
-          v-model="newItem.date"
-        />
+          <b-input type="date" placeholder="Data" v-model="newItem.date" />
         </th>
         <th>
-        <b-input
-          type="number"
+          <b-input
+            type="number"
             placeholder="Quantidade"
-          v-model="newItem.count"
-        />
+            v-model="newItem.count"
+            min="1"
+          />
         </th>
         <th class="is-flex">
           <b-button type="is-primary" class="flex-1" @click="create()">
@@ -79,10 +70,7 @@
     >
       <template v-for="column in columns">
         <b-table-column :key="column.id" v-bind="column">
-          <template
-            v-if="column.searchable"
-            #searchable="props"
-          >
+          <template v-if="column.searchable" #searchable="props">
             <b-input
               v-model="props.filters[props.column.field]"
               placeholder="Pesquisar..."
@@ -106,7 +94,7 @@
               type="file"
               accept="image/*;capture=camera"
               class="is-hidden"
-              @change="(event) => checkImg(event, props.row)"
+              @change="event => checkImg(event, props.row)"
               :ref="`inputImage_${props.index}`"
             />
           </template>
@@ -119,11 +107,15 @@
         </b-table-column>
       </template>
       <b-table-column label="Actions" v-slot="props">
-        <section>
-          <b-button type="is-orange" @click="editItem(props.row)">
+        <section class="buttons">
+          <b-button type="is-orange" @click="editProduct(props.row)">
             <b-icon icon="pen" />
           </b-button>
-          <b-button type="is-danger" class="ml-2" @click="removeItemById(props.row.id)">
+          <b-button
+            type="is-danger"
+            class="ml-2"
+            @click="confirmModalDelete(props.row)"
+          >
             <b-icon icon="delete" />
           </b-button>
         </section>
@@ -134,7 +126,11 @@
 
 <script>
 import { mapActions, mapGetters, mapMutations } from "vuex";
+import { General } from "@/utils/constants";
 import { readBarCode } from "@/utils/readCode";
+import ModalWarning from "@/components/ModalWarning/ModalWarning";
+import ModalListSearch from "@/components/ModalListSearch/ModalListSearch";
+import debounce from "buefy/src/utils/debounce";
 
 export default {
   name: "ListSearch",
@@ -143,72 +139,85 @@ export default {
       searchName: "",
       listItensSelected: [],
       newItem: {
-        id: Math.random().toString(16).slice(2),
-        code: '',
+        id: Math.random()
+          .toString(16)
+          .slice(2),
+        code: "",
         count: 0,
-        name: '',
-        size: '',
+        name: "",
+        size: "",
         codeReading: false,
-        date: (new Date).toISOString().split('T')[0]
+        date: new Date().toISOString().split("T")[0]
       },
+      General,
       columns: [
         {
           field: "code",
           label: "Código",
-          searchable: true,
+          searchable: true
         },
         {
           field: "name",
           label: "Nome",
-          searchable: true,
+          searchable: true
         },
         {
           field: "size",
           label: "Peso",
-          searchable: true,
+          searchable: true
         },
         {
           field: "date",
           label: "Data",
           type: "date",
-          centered: true,
+          centered: true
         },
         {
           field: "count",
           label: "Quantidade",
           type: "number"
-        },
-      ],
+        }
+      ]
     };
   },
   computed: {
-    ...mapGetters([
-      "getListItens"
-    ])
+    ...mapGetters(["getListItens"])
   },
   methods: {
-    ...mapMutations([
-      "insertNewItem",
-      "removeItemById",
-      "editItem"
-    ]),
+    ...mapMutations(["editItem"]),
     ...mapActions([
-      "searchCodeInGoogle"
+      "addProduct",
+      "editProduct",
+      "removeProduct",
+      "searchCodeInGoogle",
+      "listItensRequest"
     ]),
-    create() {
-      this.insertNewItem(this.newItem);
-      this.newItem = {
-        id: Math.random().toString(16).slice(2),
-        code: '',
-        count: 0,
-        name: '',
-        size: '',
-        codeReading: false,
-        date: (new Date).toISOString().split('T')[0]
-      };
-    },
+    create: debounce(
+      function() {
+        if (this.newItem.count === 0) {
+          this.$buefy.toast.open({
+            message: "A quantidade não pode ser menor que 1(um)!",
+            type: "is-danger",
+            duration: 5e3
+          });
+          return;
+        }
+        this.addProduct(this.newItem);
+        this.newItem = {
+          id: ((Math.random() + Date.now()) * 1e4).toString(36),
+          code: "",
+          count: 0,
+          name: "",
+          size: "",
+          codeReading: false,
+          date: new Date().toISOString().split("T")[0]
+        };
+      },
+      1e3,
+      1
+    ),
     readImg(ref) {
-      if (ref === "new") this.$refs[`inputImage_new`].click()
+      if (ref === "new") this.$refs[`inputImage_new`].click();
       else this.$refs[`inputImage_${ref}`][0].click();
     },
     async getBase64(file) {
@@ -216,10 +225,10 @@ export default {
         try {
           var reader = new FileReader();
           reader.readAsDataURL(file);
-          reader.onload = function () {
+          reader.onload = function() {
             res(reader.result);
           };
-          reader.onerror = function (error) {
+          reader.onerror = function(error) {
             rej("Error: ", error);
           };
         } catch (error) {
@@ -227,24 +236,46 @@ export default {
         }
       });
     },
-    formartDescrition(name) {
-      const size = name.match(/\d+\w{2,3}/) || [""];
-      const newName = size ? name.replace(size[0], "") : name;
-      return { name: newName.padronize(), size: size[0] };
+    formartDescrition(listObject) {
+      let sizes = [];
+      let titles = [];
+      function onlyUnique(value, index, self) {
+        return self.indexOf(value) === index;
+      }
+      listObject.forEach(object => {
+        const searchSizes = object.snippet.match(/\d{1,4}[gklmrund]{1,4}/gi);
+        searchSizes && (sizes = sizes.concat(searchSizes));
+        titles.push(object.title.replace(/\d{4,}|[^\s\w]+/g, ""));
+      });
+
+      const regExp = RegExp(sizes.join("|"), "i");
+      titles = titles
+        .map(title => title.replace(regExp, ""))
+        .filter(onlyUnique)
+        .sort((first, second) => first.localeCompare(second));
+      sizes = sizes
+        .map(size => size.toUpperCase())
+        .sort((first, second) => first.localeCompare(second));
+
+      return {
+        titles,
+        sizes: sizes.filter(onlyUnique)
+      };
     },
     searchManualCode(item) {
       const code = item.code;
-      if (code.length > 12)
-        this.changeItem(item, { codeResult: { code } });
+      if (code.length > 12) this.changeItem(item, { codeResult: { code } });
     },
     changeItem(item, data) {
       if (data.codeResult) {
         item.code = data.codeResult.code;
-        this.searchCodeInGoogle(item.code).then(results=> {
-          const extractValues = this.formartDescrition(results[0].title)
-          item.name = extractValues.name;
-          item.size = extractValues.size;
-          this.editItem(item);
+        this.searchCodeInGoogle(item.code).then(results => {
+          const listOptions = this.formartDescrition(results);
+          this.showModalSelectSearch(listOptions, option => {
+            item.name = option.name;
+            item.size = option.size;
+            this.editItem(item);
+          });
         });
       } else {
         this.$buefy.snackbar.open({
@@ -254,7 +285,6 @@ export default {
         });
       }
       item.codeReading = false;
-      this.editItem(item);
     },
     async checkImg(event, item) {
       item.codeReading = true;
@@ -263,6 +293,53 @@ export default {
       file.result = await this.getBase64(file);
       readBarCode(file.result, result => this.changeItem(item, result));
     },
+    confirmModalDelete(item) {
+      this.$buefy.modal.open({
+        parent: this,
+        component: ModalWarning,
+        props: {
+          title: `${this.General.WARNING}!`,
+          message: `${General.MESSAGES.CONFIRM_DELETE_ITEM.replace(
+            "(CODE)",
+            item.code
+          ).replace("(NAME)", item.name)}`,
+          confirm: () => {
+            this.removeProduct(item.id);
+          },
+          buttons: [
+            { label: General.YES, isConfirm: false, action: true },
+            { label: General.NO, isConfirm: true, action: false }
+          ]
+        },
+        hasModalCard: true,
+        trapFocus: true
+      });
+    },
+    showModalSelectSearch(list, confirm) {
+      this.$buefy.modal.open({
+        parent: this,
+        component: ModalListSearch,
+        props: {
+          list,
+          confirm
+        },
+        hasModalCard: true,
+        trapFocus: true
+      });
+    }
+  },
+  beforeMount() {
+    const hash = this.$router.currentRoute.query.hash;
+    if (hash) {
+      this.$connect();
+      setTimeout(() => {
+        this.listItensRequest(hash);
+      }, 1e3);
+    } else {
+      this.$router.push({
+        path: `?hash=${((Math.random() + Date.now()) * 1e4).toString(36)}`
+      });
+    }
   }
 };
 </script>
@@ -273,5 +350,13 @@ export default {
 }
 .icon {
   vertical-align: bottom;
+}
+.buttons {
+  min-width: 100px;
+}
+</style>
+<style lang="scss">
+.form tbody {
+  display: none !important;
 }
 </style>
