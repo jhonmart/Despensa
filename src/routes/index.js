@@ -7,12 +7,21 @@ Vue.use(VueRouter);
 
 const Home = () =>
   import(/* webpackChunkName: "app-home" */ "@/views/HomePage/HomePage");
+const NotFound = () =>
+  import(
+    /* webpackChunkName: "not-found" */ "@/views/NotFoundPage/NotFoundPage"
+  );
 
 const routes = [
   {
-    path: "*",
+    path: "/",
     name: "home",
     component: Home
+  },
+  {
+    path: "*",
+    name: "not found",
+    component: NotFound
   }
 ];
 

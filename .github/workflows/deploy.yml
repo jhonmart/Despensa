@@ -27,6 +27,10 @@ jobs:
           VUE_APP_CX: ${{ secrets.VUE_APP_CX }}
           VUE_APP_KEY: ${{ secrets.VUE_APP_KEY }}
           VUE_APP_SOCKET_URL: ${{ secrets.VUE_APP_SOCKET_URL }}
+          VUE_APP_LOCAL: ${{ secrets.VUE_APP_LOCAL }}
+
+      - name: 📋 Create not found page
+        run: cp docs/index.html docs/404.html
 
       - name: 🚀 Deploy
         uses: test-room-7/action-update-file@v1
