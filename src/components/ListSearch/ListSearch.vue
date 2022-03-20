@@ -63,6 +63,9 @@
       </template>
     </b-table>
     <b-table
+      :paginated="true"
+      :per-page="10"
+      :pagination-rounded="true"
       checkable
       :data="getListItens(searchName)"
       :checked-rows.sync="listItensSelected"
