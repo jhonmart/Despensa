@@ -1,5 +1,5 @@
 module.exports = {
-  publicPath: process.env.VUE_APP_LOCAL === 'dev' ? "/" : "/Despensa",
+  publicPath: process.env.VUE_APP_LOCAL === "dev" ? "/" : "/Despensa",
   outputDir: "docs",
   productionSourceMap: false,
   chainWebpack: config => {

@@ -19,6 +19,11 @@ const routes = [
     component: Home
   },
   {
+    path: "/compras",
+    name: "compras",
+    component: Home
+  },
+  {
     path: "*",
     name: "not found",
     component: NotFound

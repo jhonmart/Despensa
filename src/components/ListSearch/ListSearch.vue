@@ -1,6 +1,16 @@
 <template>
   <section>
-    <b-table class="form">
+    <article class="is-flex px-4 py-2">
+      <b-checkbox-button
+        v-model="modeView"
+        @input="changeMode"
+        type="is-orange"
+        class="flex-1"
+      >
+        Lista de compras
+      </b-checkbox-button>
+    </article>
+    <b-table class="form" v-if="modeView">
       <template #footer>
         <th class="is-hidden-desktop">
           <b-field
@@ -63,6 +73,7 @@
       </template>
     </b-table>
     <b-table
+      v-if="modeView"
       :paginated="true"
       :per-page="10"
       :pagination-rounded="true"
@@ -135,6 +146,21 @@
         </section>
       </b-table-column>
     </b-table>
+    <section v-else class="p-4">
+      <div class="item py-2 is-size-5" v-for="item in buyList" :key="item.id">
+        <b-checkbox v-model="item.buy" type="is-success">
+          <p>{{ item.name }}</p>
+          <p>
+            <span class="has-text-weight-semibold">Peso: </span>
+            <span>{{ item.size }}</span>
+          </p>
+          <p>
+            <span class="has-text-weight-semibold">Quantidade: </span>
+            <span>{{ item.count }}</span>
+          </p>
+        </b-checkbox>
+      </div>
+    </section>
   </section>
 </template>
 
@@ -152,12 +178,13 @@ export default {
     return {
       searchName: "",
       listItensSelected: [],
+      modeView: true,
       newItem: {
         id: Math.random()
           .toString(16)
           .slice(2),
         code: "",
-        count: 0,
+        count: 1,
         name: "",
         size: "",
         codeReading: false,
@@ -201,10 +228,18 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(["getListItens"])
+    ...mapGetters(["getListItens", "getListBuys"]),
+    buyList: {
+      get() {
+        return this.getListBuys;
+      },
+      set(value) {
+        this.setListItens(value);
+      }
+    }
   },
   methods: {
-    ...mapMutations(["editItem"]),
+    ...mapMutations(["editItem", "setListItens"]),
     ...mapActions([
       "addProduct",
       "editProduct",
@@ -226,7 +261,7 @@ export default {
         this.newItem = {
           id: ((Math.random() + Date.now()) * 1e4).toString(36),
           code: "",
-          count: 0,
+          count: 1,
           name: "",
           size: "",
           codeReading: false,
@@ -262,19 +297,16 @@ export default {
       function onlyUnique(value, index, self) {
         return self.indexOf(value) === index;
       }
-      listObject.forEach(object => {
-        const searchSizes = object.snippet.match(/\d{1,4}[gklmrund]{1,4}/gi);
-        searchSizes && (sizes = sizes.concat(searchSizes));
-        titles.push(object.title.replace(/\d{4,}|[^\s\w]+/g, ""));
-      });
-
-      const regExp = RegExp(sizes.join("|"), "i");
-      titles = titles
-        .map(title => title.replace(regExp, ""))
+      sizes = JSON.stringify(listObject)
+        .match(/ \d{1,4}[gklmrund]{1,4}/gi)
+        .map(size => size.trim())
         .filter(onlyUnique)
         .sort((first, second) => first.localeCompare(second));
-      sizes = sizes
-        .map(size => size.toUpperCase())
+
+      const regExp = RegExp(sizes.join("|"), "i");
+      titles = listObject
+        .map(item => item.title.replace(regExp, ""))
+        .filter(onlyUnique)
         .sort((first, second) => first.localeCompare(second));
 
       return {
@@ -346,9 +378,17 @@ export default {
         hasModalCard: true,
         trapFocus: true
       });
+    },
+    changeMode(value) {
+      console.log(this);
+      this.$router.push({
+        path: value ? "/compras" : "/",
+        query: { hash: this.$router.currentRoute.query.hash }
+      });
     }
   },
   beforeMount() {
+    this.modeView = this.$route.name === "home";
     const hash = this.$router.currentRoute.query.hash;
     if (hash && hash !== "yes") {
       this.$connect();

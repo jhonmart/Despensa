@@ -25,7 +25,7 @@
           </b-radio>
         </div>
       </section>
-      <section>
+      <section class="mt-3">
         <span class="label">{{ General.SIZES }}</span>
         <div class="is-flex">
           <b-radio

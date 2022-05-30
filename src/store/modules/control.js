@@ -73,7 +73,8 @@ const getters = {
   getListItens: state => (filter = "") =>
     state.listItens.filter(item =>
       RegExp(filter, "i").test(`${item.name} ${item.code} ${item.size}`)
-    )
+    ),
+  getListBuys: state => state.listItens
 };
 
 export default {
